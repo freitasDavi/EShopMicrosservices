@@ -6,10 +6,30 @@ namespace Catalog.API.Products.CreateProduct
 
     public record CreateProductResult(Guid Id);
 
-    internal class CreateProductCommandHandler(IDocumentSession session) : ICommandHandler<CreateProductCommand, CreateProductResult>
+    public class CreateProductCommandValidator: AbstractValidator<CreateProductCommand>
+    {
+        public CreateProductCommandValidator()
+        {
+            RuleFor(x => x.Name).NotEmpty().WithMessage("Nome é obrigatório");
+            RuleFor(x => x.Category).NotEmpty().WithMessage("Categoria é obrigatória");
+            RuleFor(x => x.ImageFile).NotEmpty().WithMessage("Imagem é obrigatória");
+            RuleFor(x => x.Price).GreaterThan(0).WithMessage("Preço deve ser maior que zero");
+        }
+    }
+
+    internal class CreateProductCommandHandler(IDocumentSession session, IValidator<CreateProductCommand> validator) : ICommandHandler<CreateProductCommand, CreateProductResult>
     {
         public async Task<CreateProductResult> Handle(CreateProductCommand request, CancellationToken cancellationToken)
         {
+            var result = await validator.ValidateAsync(request, cancellationToken);
+
+            var errors = result.Errors.Select(x => x.ErrorMessage).ToList();
+
+            if (errors.Count != 0)
+            {
+                throw new ValidationException(errors.FirstOrDefault());
+            }
+
             // create product entity from command object
             var product = new Product
             {
