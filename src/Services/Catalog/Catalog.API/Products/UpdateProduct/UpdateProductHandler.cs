@@ -1,11 +1,26 @@
 ﻿
 using Catalog.API.Exceptions;
+using Catalog.API.Products.CreateProduct;
 
 namespace Catalog.API.Products.UpdateProduct
 {
     public record UpdateProductCommand(Guid Id, string Name, List<string> Category, string Description, string ImageFile, decimal Price) : ICommand<UpdateProductResult>;
 
     public record UpdateProductResult(bool IsSuccess);
+
+    public class UpdateProductCommandValidator : AbstractValidator<UpdateProductCommand>
+    {
+        public UpdateProductCommandValidator()
+        {
+            RuleFor(x => x.Id).NotEmpty().WithMessage("ID do produto é obrigatório");
+
+            RuleFor(x => x.Name)
+                .NotEmpty().WithMessage("Nome é obrigatório")
+                .Length(2, 150).WithMessage("O nome deve conter entre 2 e 150 caracteres");
+
+            RuleFor(x => x.Price).GreaterThan(0).WithMessage("Preço deve ser maior que zero");
+        }
+    }
 
     internal class UpdateProductCommandHandler(IDocumentSession session, ILogger<UpdateProductCommandHandler> logger) : ICommandHandler<UpdateProductCommand, UpdateProductResult>
     {
